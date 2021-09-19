@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 
 
 @Component
-public class QueryCreatorImpl implements QueryCreator {
-    private static final Logger logger = LoggerFactory.getLogger(QueryCreatorImpl.class);
+public class InsertQueryCreatorImpl implements QueryCreator {
+    private static final Logger logger = LoggerFactory.getLogger(InsertQueryCreatorImpl.class);
 
     public String getQuery(String tableName, String... columnNames) {
         logger.debug("Creating query for table {}, {}", tableName, columnNames);
