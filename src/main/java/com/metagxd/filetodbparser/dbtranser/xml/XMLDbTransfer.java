@@ -15,6 +15,7 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,7 +48,6 @@ public class XMLDbTransfer implements DbTransfer {
     }
 
     public void transferToDb(String fileName, String elementName, String... nodeNames) {
-        logger.info("Start reading file {}", fileName);
         var path = Paths.get(fileName);
         if (!Files.exists(path)) {
             logger.error("File {} not exist!", fileName);
@@ -59,6 +59,7 @@ public class XMLDbTransfer implements DbTransfer {
             XMLStreamReader reader = readerFactory.getReader(Files.newInputStream(path));
             //create storage for elements
             var nodeData = new String[nodeNames.length];
+            logger.info("Start reading file {}", fileName);
             //populate object from xml
             while (reader.hasNext()) {       // while not end of XML
                 int event = reader.next();   // read next event
@@ -75,12 +76,14 @@ public class XMLDbTransfer implements DbTransfer {
                     nodeData = new String[nodeNames.length];
                 }
                 //if batch size reached the limit push to DB, else if end of document reached
-                if (nodeList.size() >= batchSize || event == END_DOCUMENT) {
+                if (nodeList.size() >= batchSize || event == END_DOCUMENT && !nodeList.isEmpty()) {
                     dbSaver.save(connection, nodeList);
                     nodeList.clear();
                 }
             }
-        } catch (XMLStreamException | IOException e) {
+            logger.debug("Closing connection");
+            connection.close();
+        } catch (XMLStreamException | IOException | SQLException e) {
             logger.error("Transfer error:", e);
         }
     }

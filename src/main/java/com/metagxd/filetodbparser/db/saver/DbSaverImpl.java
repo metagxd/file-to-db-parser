@@ -22,7 +22,7 @@ public class DbSaverImpl implements DbSaver<List<String[]>> {
     private static final Logger logger = LoggerFactory.getLogger(DbSaverImpl.class);
 
     public DbSaverImpl(QueryCreator queryCreator, @Value("${database.table.name}") String tableName,
-                       @Value("#{'${transfer.node.names}'.split(',')}") List<String> columnNames) {
+                       @Value("#{'${transfer.child.node.names}'.split(',')}") List<String> columnNames) {
         this.queryCreator = queryCreator;
         this.tableName = tableName;
         this.columnNames = columnNames;
@@ -41,6 +41,7 @@ public class DbSaverImpl implements DbSaver<List<String[]>> {
                 }
                 preparedStatement.addBatch();
             }
+            logger.debug("Executing batch, size {}", nodeList.size());
             preparedStatement.executeBatch();
             connection.commit();
         } catch (SQLException sqlException) {

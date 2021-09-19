@@ -8,12 +8,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.util.StopWatch;
 
 import java.util.List;
 
 @SpringBootApplication
-@EnableAsync
 public class FileToDbParserApplication implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(FileToDbParserApplication.class);
@@ -22,9 +21,9 @@ public class FileToDbParserApplication implements CommandLineRunner {
     XMLDbTransfer xmlParser;
     @Value("${transfer.file.name}")
     private String fileName;
-    @Value("#{'${transfer.node.names}'.split(',')}")
+    @Value("#{'${transfer.child.node.names}'.split(',')}")
     private List<String> nodeNames;
-    @Value("${transfer.element.name}")
+    @Value("${transfer.parent.node.name}")
     private String elementName;
 
     public static void main(String[] args) {
@@ -34,11 +33,11 @@ public class FileToDbParserApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        long startTime = System.nanoTime();
+        StopWatch stopWatch = new StopWatch("Execution time");
+        stopWatch.start("Transfer");
         xmlParser.transferToDb(fileName, elementName, nodeNames.toArray(new String[0]));
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime) / 1_000_000;
-        logger.info("{} ms", duration);
+        stopWatch.stop();
+        logger.info("Execution time {} seconds", stopWatch.getTotalTimeSeconds());
     }
 
 }
