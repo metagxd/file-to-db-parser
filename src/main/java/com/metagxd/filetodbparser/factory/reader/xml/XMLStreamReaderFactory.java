@@ -1,23 +1,22 @@
-package com.metagxd.filetodbparser.util;
+package com.metagxd.filetodbparser.factory.reader.xml;
+
+import org.springframework.stereotype.Component;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.InputStream;
 
-public class StaxStreamProcessor implements AutoCloseable {
+@Component
+public class XMLStreamReaderFactory implements XMLReaderFactory<XMLStreamReader>, AutoCloseable {
     private static final XMLInputFactory FACTORY = XMLInputFactory.newInstance();
 
-    private final XMLStreamReader reader;
+    private XMLStreamReader reader;
 
-    public StaxStreamProcessor(InputStream is) throws XMLStreamException {
-        reader = FACTORY.createXMLStreamReader(is);
+
+    public XMLStreamReader getReader(InputStream inputStream) throws XMLStreamException {
+        return FACTORY.createXMLStreamReader(inputStream);
     }
-
-    public XMLStreamReader getReader() {
-        return reader;
-    }
-
 
     @Override
     public void close() {

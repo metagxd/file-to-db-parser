@@ -1,4 +1,4 @@
-package com.metagxd.filetodbparser.factory;
+package com.metagxd.filetodbparser.factory.dbconnection;
 
 import java.sql.Connection;
 
