@@ -16,8 +16,13 @@ public class XMLStreamReaderFactory implements XMLReaderFactory<XMLStreamReader>
     private XMLStreamReader reader;
 
 
-    public XMLStreamReader getReader(InputStream inputStream) throws XMLStreamException {
-        return FACTORY.createXMLStreamReader(inputStream);
+    public XMLStreamReader getReader(InputStream inputStream) {
+        try {
+            return FACTORY.createXMLStreamReader(inputStream);
+        } catch (XMLStreamException e) {
+            logger.error("Error occurred", e);
+        }
+        return null;
     }
 
     @Override

@@ -34,7 +34,7 @@ public class DbSaverImpl implements DbSaver<List<String[]>> {
         }
         try (var preparedStatement = connection.prepareStatement(query)) {
             connection.setAutoCommit(false);
-            for (String[] node : nodeList) {
+            for (String[] node : nodeList) { //add node data from all String[] nodes to batch
                 for (int i = 0; i < node.length; i++) {
                     int index = i + 1;
                     preparedStatement.setString(index, getStringOrNull(node[i]));
@@ -49,6 +49,7 @@ public class DbSaverImpl implements DbSaver<List<String[]>> {
         }
     }
 
+    /*return given string or null if not present or empty*/
     private String getStringOrNull(@Nullable String s) {
         if (s != null) {
             return s.isEmpty() ? null : s;

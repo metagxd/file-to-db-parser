@@ -4,6 +4,7 @@ import com.metagxd.filetodbparser.db.creator.table.TableCreator;
 import com.metagxd.filetodbparser.db.saver.DbSaver;
 import com.metagxd.filetodbparser.dbtranser.DbTransfer;
 import com.metagxd.filetodbparser.factory.dbconnection.DbConnectionFactory;
+import com.metagxd.filetodbparser.factory.reader.xml.XMLReaderFactory;
 import com.metagxd.filetodbparser.factory.reader.xml.XMLStreamReaderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class XMLDbTransfer implements DbTransfer {
 
     private final DbConnectionFactory connectionFactory;
     private final DbSaver<List<String[]>> dbSaver;
-    private final XMLStreamReaderFactory readerFactory;
+    private final XMLReaderFactory<XMLStreamReader> readerFactory;
     private final TableCreator tableCreator;
 
     @Value("${database.table.name}")
@@ -47,7 +48,7 @@ public class XMLDbTransfer implements DbTransfer {
         this.tableCreator = tableCreator;
     }
 
-    public void transferToDb(String fileName, String elementName, String... nodeNames) {
+    public void transferToDb(String fileName, String parentNodeName, String... nodeNames) {
         var path = Paths.get(fileName);
         if (!Files.exists(path)) {
             logger.error("File {} not exist!", fileName);
@@ -71,7 +72,7 @@ public class XMLDbTransfer implements DbTransfer {
                 }
 
                 //if reach end of node save node values to nodeList and create new nodeData
-                if (event == END_ELEMENT && elementName.equals(reader.getLocalName())) {
+                if (event == END_ELEMENT && parentNodeName.equals(reader.getLocalName())) {
                     nodeList.add(nodeData);
                     nodeData = new String[nodeNames.length];
                 }
