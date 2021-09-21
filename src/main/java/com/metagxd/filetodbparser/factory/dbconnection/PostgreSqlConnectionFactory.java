@@ -11,22 +11,25 @@ import java.sql.SQLException;
 @Component
 public class PostgreSqlConnectionFactory implements DbConnectionFactory {
 
-    @Value("${database.url}")
-    private String url;
-    @Value("${database.username}")
-    private String username;
-    @Value("${database.password}")
-    private String password;
+    private final String url;
+    private final String username;
+    private final String password;
+
+    public PostgreSqlConnectionFactory(@Value("${database.url}") String url, @Value("${database.username}") String username,
+                                       @Value("${database.password}") String password) {
+        this.url = url;
+        this.username = username;
+        this.password = password;
+    }
 
     @Override
-    public Connection getConnection() {
+    public Connection getConnection() throws SQLException {
         var logger = LoggerFactory.getLogger(PostgreSqlConnectionFactory.class);
         try {
             logger.debug("Getting connection for {}", url);
             return DriverManager.getConnection(url, username, password);
         } catch (SQLException sqlException) {
-            logger.error("Can't get connection ", sqlException);
+            throw new SQLException("Can't connect to database!", sqlException);
         }
-        return null;
     }
 }
