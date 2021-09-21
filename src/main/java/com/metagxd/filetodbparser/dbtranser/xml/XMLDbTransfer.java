@@ -16,6 +16,7 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,8 +55,10 @@ public class XMLDbTransfer implements DbTransfer {
             logger.error("File {} not exist!", fileName);
             return;
         }
+
+        Connection connection = null;
         try (readerFactory) {
-            var connection = connectionFactory.getConnection();
+            connection = connectionFactory.getConnection();
             tableCreator.createTable(connection, tableName, nodeNames);
             XMLStreamReader reader = readerFactory.getReader(Files.newInputStream(path));
             //create storage for elements
@@ -76,16 +79,24 @@ public class XMLDbTransfer implements DbTransfer {
                     nodeList.add(nodeData);
                     nodeData = new String[nodeNames.length];
                 }
+
                 //if batch size reached the limit push to DB, else if end of document reached
                 if (nodeList.size() >= batchSize || event == END_DOCUMENT && !nodeList.isEmpty()) {
                     dbSaver.save(connection, nodeList);
                     nodeList.clear();
                 }
             }
-            logger.debug("Closing connection");
-            connection.close();
         } catch (XMLStreamException | IOException | SQLException e) {
             logger.error("Transfer error:", e);
+        } finally {
+            try {
+                logger.debug("Closing connection");
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException sqlException) {
+                logger.error("Error while closing connection", sqlException);
+            }
         }
     }
 
