@@ -55,10 +55,10 @@ public class XMLDbTransfer implements DbTransfer {
             logger.error("File {} not exist!", fileName);
             return;
         }
-
-        Connection connection = null;
-        try (readerFactory) {
-            connection = connectionFactory.getConnection();
+        try (
+                readerFactory;
+                Connection connection = connectionFactory.getConnection()
+        ) {
             tableCreator.createTable(connection, tableName, nodeNames);
             XMLStreamReader reader = readerFactory.getReader(Files.newInputStream(path));
             //create storage for elements
@@ -88,15 +88,6 @@ public class XMLDbTransfer implements DbTransfer {
             }
         } catch (XMLStreamException | IOException | SQLException e) {
             logger.error("Transfer error:", e);
-        } finally {
-            try {
-                logger.debug("Closing connection");
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException sqlException) {
-                logger.error("Error while closing connection", sqlException);
-            }
         }
     }
 
