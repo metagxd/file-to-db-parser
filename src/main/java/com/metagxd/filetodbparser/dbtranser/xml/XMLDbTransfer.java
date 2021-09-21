@@ -34,6 +34,8 @@ public class XMLDbTransfer implements DbTransfer {
 
     @Value("${database.table.name}")
     private String tableName;
+    @Value("${database.unique.fields:#{null}}")
+    private List<String> uniqueColumns;
     @Value("${transfer.batch.size:#{100}}")
     private int batchSize;
 
@@ -59,7 +61,7 @@ public class XMLDbTransfer implements DbTransfer {
                 readerFactory;
                 Connection connection = connectionFactory.getConnection()
         ) {
-            tableCreator.createTable(connection, tableName, nodeNames);
+            tableCreator.createTable(connection, tableName, uniqueColumns, nodeNames);
             XMLStreamReader reader = readerFactory.getReader(Files.newInputStream(path));
             //create storage for elements
             var nodeData = new String[nodeNames.length];

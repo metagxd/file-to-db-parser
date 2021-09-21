@@ -20,7 +20,7 @@ import java.util.Random;
 //FIXME: bad implementation
 public class XmlPopulator {
     //set how many nodes need in xml
-    private static final int NUMBER_OF_NODES = 3;
+    private static final int NUMBER_OF_NODES = 3_000_000;
     private static final String filename = "src/test/java/com/metagxd/filetodbparser/test-data/testData.xml";
 
     public static void main(String[] args) {

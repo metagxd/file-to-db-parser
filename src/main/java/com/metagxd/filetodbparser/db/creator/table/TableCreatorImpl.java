@@ -2,7 +2,6 @@ package com.metagxd.filetodbparser.db.creator.table;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -12,11 +11,9 @@ import java.util.List;
 @Component
 public class TableCreatorImpl implements TableCreator {
 
-    @Value("${database.unique.fields:#{null}}")
-    List<String> uniqueColumns;
     private static final Logger logger = LoggerFactory.getLogger(TableCreatorImpl.class);
 
-    public void createTable(Connection connection, String tableName, String... columnNames) {
+    public void createTable(Connection connection, String tableName, List<String> uniqueColumns, String... columnNames) {
         logger.debug("Creating query for table {}", tableName);
         var sql = new StringBuilder();
         sql.append("CREATE SEQUENCE IF NOT EXISTS global_seq START WITH 1; ");
@@ -41,7 +38,7 @@ public class TableCreatorImpl implements TableCreator {
             sql.append(uniqueColumns.get(uniqueColumns.size() - 1)).append(");");
         }
         logger.debug("Created query: {}", sql);
-        try(var preparedStatement = connection.prepareStatement(sql.toString())) {
+        try (var preparedStatement = connection.prepareStatement(sql.toString())) {
             preparedStatement.execute();
         } catch (SQLException sqlException) {
             if (sqlException.getSQLState().equals("42P07")) { //WARN if table exist
@@ -50,5 +47,9 @@ public class TableCreatorImpl implements TableCreator {
                 logger.error("Create table error!", sqlException);
             }
         }
+    }
+
+    public void createTable(Connection connection, String tableName, String... columnNames) {
+        this.createTable(connection, tableName, null, columnNames);
     }
 }
