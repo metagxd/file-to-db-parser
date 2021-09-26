@@ -13,6 +13,7 @@ public class TableCreatorImpl implements TableCreator {
 
     private static final Logger logger = LoggerFactory.getLogger(TableCreatorImpl.class);
 
+    @Override
     public void createTable(Connection connection, String tableName, List<String> uniqueColumns, String... columnNames) {
         logger.debug("Creating query for table {}", tableName);
         var sql = new StringBuilder();
