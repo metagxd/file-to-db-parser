@@ -24,6 +24,9 @@ import java.util.List;
 
 import static javax.xml.stream.XMLStreamConstants.*;
 
+/**
+ * This class implements {@link DbTransfer}
+ */
 @Component
 public class XMLDbTransfer implements DbTransfer {
 
@@ -51,6 +54,13 @@ public class XMLDbTransfer implements DbTransfer {
         this.tableCreator = tableCreator;
     }
 
+    /**
+     * Transfer data from XML file to db
+     *
+     * @param fileName name of xml file.
+     * @param parentNodeName name of parent node that contains child node that will be transfer in db.
+     * @param nodeNames name of child node.
+     */
     public void transferToDb(String fileName, String parentNodeName, String... nodeNames) {
         var path = Paths.get(fileName);
         if (!Files.exists(path)) {
@@ -71,7 +81,7 @@ public class XMLDbTransfer implements DbTransfer {
                 int event = reader.next();   // read next event
                 if (event == START_ELEMENT) {
                     String nodeName = reader.getLocalName();
-                    if (Arrays.asList(nodeNames).contains(nodeName)) {      //order of nodes is not important
+                    if (Arrays.asList(nodeNames).contains(nodeName)) {
                         saveToNodeData(nodeData, reader, nodeNames, nodeName);
                     }
                 }
@@ -93,7 +103,6 @@ public class XMLDbTransfer implements DbTransfer {
         }
     }
 
-    //save node value in right order
     private void saveToNodeData(String[] nodeData, XMLStreamReader reader, String[] nodeNames,
                                 String nodeName) throws XMLStreamException {
         for (var i = 0; i < nodeNames.length; i++) {

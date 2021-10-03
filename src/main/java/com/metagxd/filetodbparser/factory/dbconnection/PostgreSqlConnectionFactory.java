@@ -9,6 +9,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+/**
+ * Factory implementation for creating db connections
+ */
 @Component
 public class PostgreSqlConnectionFactory implements DbConnectionFactory {
 
@@ -16,9 +19,15 @@ public class PostgreSqlConnectionFactory implements DbConnectionFactory {
     private final String username;
     private final String password;
 
-   private static final Logger logger = LoggerFactory.getLogger(PostgreSqlConnectionFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(PostgreSqlConnectionFactory.class);
 
-
+    /**
+     * Create {@link DbConnectionFactory} implementation for creating connection for PostreSQL database.
+     *
+     * @param url      url of database
+     * @param username username
+     * @param password password to db
+     */
     public PostgreSqlConnectionFactory(@Value("${database.url}") String url, @Value("${database.username}") String username,
                                        @Value("${database.password}") String password) {
         this.url = url;
@@ -26,6 +35,10 @@ public class PostgreSqlConnectionFactory implements DbConnectionFactory {
         this.password = password;
     }
 
+    /**
+     * @return {@link Connection} to database.
+     * @throws SQLException when can't establish connection for any reason.
+     */
     @Override
     public Connection getConnection() throws SQLException {
         try {
