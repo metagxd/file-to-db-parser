@@ -1,7 +1,5 @@
 package com.metagxd.filetodbparser.db.saver;
 
-import java.sql.Connection;
-
-public interface DbSaver<T> {
-    void save(Connection connection, T objectList);
+public interface DbSaver extends Runnable {
+    void save();
 }

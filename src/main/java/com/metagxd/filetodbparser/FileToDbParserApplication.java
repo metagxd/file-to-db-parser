@@ -1,16 +1,18 @@
 package com.metagxd.filetodbparser;
 
+import com.metagxd.filetodbparser.db.saver.DbSaver;
 import com.metagxd.filetodbparser.dbtranser.DbTransfer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.util.StopWatch;
 
-import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @SpringBootApplication
 public class FileToDbParserApplication implements CommandLineRunner {
@@ -18,13 +20,9 @@ public class FileToDbParserApplication implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(FileToDbParserApplication.class);
 
     @Autowired
-    private DbTransfer xmlParser;
-    @Value("${transfer.file.name}")
-    private String fileName;
-    @Value("#{'${transfer.child.node.names}'.split(',')}")
-    private List<String> nodeNames;
-    @Value("${transfer.parent.node.name}")
-    private String parentNodeName;
+    private DbTransfer dbTransfer;
+    @Autowired
+    private DbSaver dbSaver;
 
     public static void main(String[] args) {
         SpringApplication.run(FileToDbParserApplication.class, args);
@@ -35,9 +33,22 @@ public class FileToDbParserApplication implements CommandLineRunner {
     public void run(String... args) {
         StopWatch stopWatch = new StopWatch("Execution time");
         stopWatch.start("Transfer");
-        xmlParser.transferToDb(fileName, parentNodeName, nodeNames.toArray(new String[0]));
-        stopWatch.stop();
+        var readerThread = new Thread(() -> dbTransfer.run(), "TransferThread");
+        new Thread(() -> dbSaver.run(), "saverThread0").start();
+        new Thread(() -> dbSaver.run(), "saverThread1").start();
+        readerThread.start();
+        while (true) {
+            if (readerThread.isInterrupted()) {
+                stopWatch.stop();
+                break;
+            }
+        }
         logger.info("Execution time {} seconds", stopWatch.getTotalTimeSeconds());
     }
 
+
+    @Bean(name = "transferBlockingQueue")
+    public BlockingQueue<String[]> getBlockingQueue() {
+        return new LinkedBlockingQueue<>(50_000);
+    }
 }

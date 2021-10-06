@@ -1,9 +1,6 @@
 package com.metagxd.filetodbparser.dbtranser.xml;
 
-import com.metagxd.filetodbparser.db.creator.table.TableCreator;
-import com.metagxd.filetodbparser.db.saver.DbSaver;
 import com.metagxd.filetodbparser.dbtranser.DbTransfer;
-import com.metagxd.filetodbparser.factory.dbconnection.DbConnectionFactory;
 import com.metagxd.filetodbparser.factory.reader.xml.XMLReaderFactory;
 import com.metagxd.filetodbparser.factory.reader.xml.XMLStreamReaderFactory;
 import org.slf4j.Logger;
@@ -16,52 +13,42 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
-import static javax.xml.stream.XMLStreamConstants.*;
+import static javax.xml.stream.XMLStreamConstants.END_DOCUMENT;
+import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
+import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
 @Component
 public class XMLDbTransfer implements DbTransfer {
 
-    private final DbConnectionFactory connectionFactory;
-    private final DbSaver<List<String[]>> dbSaver;
     private final XMLReaderFactory<XMLStreamReader> readerFactory;
-    private final TableCreator tableCreator;
-
-    @Value("${database.table.name}")
-    private String tableName;
-    @Value("${database.unique.fields:#{null}}")
-    private List<String> uniqueColumns;
-    @Value("${transfer.batch.size:#{100}}")
-    private int batchSize;
-
-    private final List<String[]> nodeList = new ArrayList<>();
+    private final BlockingQueue<String[]> nodeStorage;
+    private final String fileName;
+    private final String parentNodeName;
+    private final String[] nodeNames;
 
     private static final Logger logger = LoggerFactory.getLogger(XMLDbTransfer.class);
 
-    public XMLDbTransfer(DbConnectionFactory connectionFactory, DbSaver<List<String[]>> dbSaver,
-                         XMLStreamReaderFactory readerFactory, TableCreator tableCreator) {
-        this.connectionFactory = connectionFactory;
-        this.dbSaver = dbSaver;
+    public XMLDbTransfer(XMLStreamReaderFactory readerFactory, BlockingQueue<String[]> nodeStorage,
+                         @Value("${transfer.file.name}") String fileName,
+                         @Value("${transfer.parent.node.name}") String parentNodeName,
+                         @Value("${transfer.child.node.names}") String... nodeNames) {
         this.readerFactory = readerFactory;
-        this.tableCreator = tableCreator;
+        this.nodeStorage = nodeStorage;
+        this.fileName = fileName;
+        this.parentNodeName = parentNodeName;
+        this.nodeNames = nodeNames;
     }
 
-    public void transferToDb(String fileName, String parentNodeName, String... nodeNames) {
+    public void transferToDb() {
         var path = Paths.get(fileName);
         if (!Files.exists(path)) {
             logger.error("File {} not exist!", fileName);
             return;
         }
-        try (
-                readerFactory;
-                Connection connection = connectionFactory.getConnection()
-        ) {
-            tableCreator.createTable(connection, tableName, uniqueColumns, nodeNames);
+        try (readerFactory) {
             XMLStreamReader reader = readerFactory.getReader(Files.newInputStream(path));
             //create storage for elements
             var nodeData = new String[nodeNames.length];
@@ -76,19 +63,14 @@ public class XMLDbTransfer implements DbTransfer {
                     }
                 }
 
-                //if reach end of node save node values to nodeList and create new nodeData
+                //if reach end of node save node values to nodeStorage and create new nodeData
                 if (event == END_ELEMENT && parentNodeName.equals(reader.getLocalName())) {
-                    nodeList.add(nodeData);
+                    nodeStorage.put(nodeData);
                     nodeData = new String[nodeNames.length];
                 }
-
-                //if batch size reached the limit push to DB, else if end of document reached
-                if (nodeList.size() >= batchSize || event == END_DOCUMENT && !nodeList.isEmpty()) {
-                    dbSaver.save(connection, nodeList);
-                    nodeList.clear();
-                }
             }
-        } catch (XMLStreamException | IOException | SQLException e) {
+            Thread.currentThread().interrupt();
+        } catch (XMLStreamException | IOException | InterruptedException e) {
             logger.error("Transfer error:", e);
         }
     }
@@ -103,4 +85,8 @@ public class XMLDbTransfer implements DbTransfer {
         }
     }
 
+    @Override
+    public void run() {
+        transferToDb();
+    }
 }
