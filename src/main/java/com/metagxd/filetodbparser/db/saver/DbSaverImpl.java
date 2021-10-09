@@ -2,19 +2,17 @@ package com.metagxd.filetodbparser.db.saver;
 
 import com.metagxd.filetodbparser.db.creator.query.QueryCreator;
 import com.metagxd.filetodbparser.factory.dbconnection.DbConnectionFactory;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-
 /*create sql query once than use existing*/
-
 @Component
 public class DbSaverImpl implements DbSaver {
 
@@ -29,8 +27,8 @@ public class DbSaverImpl implements DbSaver {
     private static final Logger logger = LoggerFactory.getLogger(DbSaverImpl.class);
 
     public DbSaverImpl(@Value("${database.table.name}") String tableName, QueryCreator queryCreator,
-                       @Value("#{'${transfer.child.node.names}'.split(',')}") List<String> columnNames, BlockingQueue<String[]> nodeStorage,
-                       DbConnectionFactory connectionFactory) {
+            @Value("#{'${transfer.child.node.names}'.split(',')}") List<String> columnNames, BlockingQueue<String[]> nodeStorage,
+            DbConnectionFactory connectionFactory) {
         this.tableName = tableName;
         this.queryCreator = queryCreator;
         this.columnNames = columnNames;
@@ -43,13 +41,14 @@ public class DbSaverImpl implements DbSaver {
             query = queryCreator.getQuery(tableName, columnNames.toArray(new String[0]));
         }
         try (var connection = connectionFactory.getConnection();
-             var preparedStatement = connection.prepareStatement(query)) {
+                var preparedStatement = connection.prepareStatement(query)) {
             connection.setAutoCommit(false);
             while (!nodeStorage.isEmpty()) {
-                for (int i = 0; i < 10_000; i++) {
-   /*                 if (nodeStorage.isEmpty()) {
-                        break;
-                    }*/
+                int batchSize = 10_000;
+                if (nodeStorage.size() < batchSize) {
+                    batchSize = nodeStorage.size();
+                }
+                for (int i = 0; i < batchSize; i++) {
                     String[] poll = nodeStorage.take();
                     for (int j = 0; j < poll.length; j++) {
                         int index = j + 1;

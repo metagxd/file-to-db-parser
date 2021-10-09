@@ -1,5 +1,11 @@
 package com.metagxd.filetodbparser;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Random;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -9,18 +15,12 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Random;
 
 
 //FIXME: bad implementation
 public class XmlPopulator {
     //set how many nodes need in xml
-    private static final int NUMBER_OF_NODES = 1_568_352;
+    private static final int NUMBER_OF_NODES = 5_568_352;
     private static final String filename = "src/test/java/com/metagxd/filetodbparser/test-data/testData.xml";
 
     public static void main(String[] args) {
@@ -55,7 +55,7 @@ public class XmlPopulator {
 
         XMLStreamWriter writer = output.createXMLStreamWriter(out);
 
-        writer.writeStartDocument("Cp1252", "1.0");
+        writer.writeStartDocument("UTF-8", "1.0");
 
         writer.writeStartElement("companies");
         for (int i = 0; i < NUMBER_OF_NODES; i++) {

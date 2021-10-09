@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 public class InsertQueryCreatorImpl implements QueryCreator {
     private static final Logger logger = LoggerFactory.getLogger(InsertQueryCreatorImpl.class);
 
+    @Override
     public String getQuery(String tableName, String... columnNames) {
         logger.debug("Creating query for table {}, {}", tableName, columnNames);
         var sql = new StringBuilder();

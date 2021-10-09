@@ -1,37 +1,34 @@
-package com.metagxd.filetodbparser.dbtranser.xml;
+package com.metagxd.filetodbparser.reader.xml;
 
-import com.metagxd.filetodbparser.dbtranser.DbTransfer;
 import com.metagxd.filetodbparser.factory.reader.xml.XMLReaderFactory;
 import com.metagxd.filetodbparser.factory.reader.xml.XMLStreamReaderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import com.metagxd.filetodbparser.reader.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
-
-import static javax.xml.stream.XMLStreamConstants.END_DOCUMENT;
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 @Component
-public class XMLDbTransfer implements DbTransfer {
-
+public class XMLReader implements FileReader {
+ 
     private final XMLReaderFactory<XMLStreamReader> readerFactory;
     private final BlockingQueue<String[]> nodeStorage;
     private final String fileName;
     private final String parentNodeName;
     private final String[] nodeNames;
 
-    private static final Logger logger = LoggerFactory.getLogger(XMLDbTransfer.class);
+    private static final Logger logger = LoggerFactory.getLogger(XMLReader.class);
 
-    public XMLDbTransfer(XMLStreamReaderFactory readerFactory, BlockingQueue<String[]> nodeStorage,
+    public XMLReader(XMLStreamReaderFactory readerFactory, BlockingQueue<String[]> nodeStorage,
                          @Value("${transfer.file.name}") String fileName,
                          @Value("${transfer.parent.node.name}") String parentNodeName,
                          @Value("${transfer.child.node.names}") String... nodeNames) {
@@ -42,7 +39,8 @@ public class XMLDbTransfer implements DbTransfer {
         this.nodeNames = nodeNames;
     }
 
-    public void transferToDb() {
+    @Override
+    public void read() {
         var path = Paths.get(fileName);
         if (!Files.exists(path)) {
             logger.error("File {} not exist!", fileName);
@@ -87,6 +85,6 @@ public class XMLDbTransfer implements DbTransfer {
 
     @Override
     public void run() {
-        transferToDb();
+        read();
     }
 }
