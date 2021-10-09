@@ -11,7 +11,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.util.StopWatch;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @SpringBootApplication
@@ -32,11 +37,18 @@ public class FileToDbParserApplication implements CommandLineRunner {
     @Override
     public void run(String... args) {
         StopWatch stopWatch = new StopWatch("Execution time");
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         stopWatch.start("Transfer");
         var readerThread = new Thread(() -> dbTransfer.run(), "TransferThread");
-        new Thread(() -> dbSaver.run(), "saverThread0").start();
-        new Thread(() -> dbSaver.run(), "saverThread1").start();
+        List<Thread> threadList = new ArrayList<>(Arrays.asList(
+                new Thread(() -> dbSaver.run(), "saverThread0"),
+                new Thread(() -> dbSaver.run(), "saverThread1"),
+                new Thread(() -> dbSaver.run(), "saverThread2"),
+                new Thread(() -> dbSaver.run(), "saverThread3")
+        ));
+
         readerThread.start();
+        threadList.forEach(Thread::start);
         while (true) {
             if (readerThread.isInterrupted()) {
                 stopWatch.stop();
@@ -49,6 +61,6 @@ public class FileToDbParserApplication implements CommandLineRunner {
 
     @Bean(name = "transferBlockingQueue")
     public BlockingQueue<String[]> getBlockingQueue() {
-        return new LinkedBlockingQueue<>(50_000);
+        return new LinkedBlockingQueue<>(400_000);
     }
 }

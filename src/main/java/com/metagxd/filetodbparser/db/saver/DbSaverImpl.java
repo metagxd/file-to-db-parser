@@ -9,6 +9,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
@@ -22,6 +23,7 @@ public class DbSaverImpl implements DbSaver {
     private final List<String> columnNames;
     private final BlockingQueue<String[]> nodeStorage;
     private final DbConnectionFactory connectionFactory;
+    private boolean isStopped = false;
     private String query;
 
     private static final Logger logger = LoggerFactory.getLogger(DbSaverImpl.class);
@@ -45,19 +47,24 @@ public class DbSaverImpl implements DbSaver {
             connection.setAutoCommit(false);
             while (!nodeStorage.isEmpty()) {
                 for (int i = 0; i < 10_000; i++) {
+   /*                 if (nodeStorage.isEmpty()) {
+                        break;
+                    }*/
                     String[] poll = nodeStorage.take();
                     for (int j = 0; j < poll.length; j++) {
                         int index = j + 1;
                         preparedStatement.setString(index, getStringOrNull(poll[j]));
                     }
                     preparedStatement.addBatch();
+
                 }
-                logger.debug("Executing batch, size {}", 10000);
-                preparedStatement.executeBatch();
+                int size = Arrays.stream(preparedStatement.executeBatch()).sum();
+                logger.debug("Executing batch size {}", size);
                 connection.commit();
             }
         } catch (SQLException | InterruptedException exception) {
             logger.error("Save error!", exception);
+            exception.printStackTrace();
         }
     }
 
@@ -72,5 +79,13 @@ public class DbSaverImpl implements DbSaver {
     @Override
     public void run() {
         save();
+    }
+
+    public boolean isStopped() {
+        return isStopped;
+    }
+
+    public void setStopped(boolean stopped) {
+        isStopped = stopped;
     }
 }
