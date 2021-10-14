@@ -1,6 +1,7 @@
 package com.metagxd.filetodbparser.db.saver;
 
 import com.metagxd.filetodbparser.db.creator.query.QueryCreator;
+import com.metagxd.filetodbparser.exception.SavingException;
 import com.metagxd.filetodbparser.factory.dbconnection.DbConnectionFactory;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -21,22 +22,24 @@ public class DbSaverImpl implements DbSaver {
     private final List<String> columnNames;
     private final BlockingQueue<String[]> nodeStorage;
     private final DbConnectionFactory connectionFactory;
-    private boolean isStopped = false;
+    private final int defaultBatchSize;
     private String query;
 
     private static final Logger logger = LoggerFactory.getLogger(DbSaverImpl.class);
 
     public DbSaverImpl(@Value("${database.table.name}") String tableName, QueryCreator queryCreator,
             @Value("#{'${transfer.child.node.names}'.split(',')}") List<String> columnNames, BlockingQueue<String[]> nodeStorage,
-            DbConnectionFactory connectionFactory) {
+            DbConnectionFactory connectionFactory, @Value("${transfer.batch.size}") int batchSize) {
         this.tableName = tableName;
         this.queryCreator = queryCreator;
         this.columnNames = columnNames;
         this.nodeStorage = nodeStorage;
         this.connectionFactory = connectionFactory;
+        this.defaultBatchSize = batchSize;
     }
 
-    public void save() {
+    @Override
+    public void save() throws SavingException {
         if (query == null) {
             query = queryCreator.getQuery(tableName, columnNames.toArray(new String[0]));
         }
@@ -44,18 +47,21 @@ public class DbSaverImpl implements DbSaver {
                 var preparedStatement = connection.prepareStatement(query)) {
             connection.setAutoCommit(false);
             while (!nodeStorage.isEmpty()) {
-                int batchSize = 10_000;
-                if (nodeStorage.size() < batchSize) {
-                    batchSize = nodeStorage.size();
-                }
-                for (int i = 0; i < batchSize; i++) {
-                    String[] poll = nodeStorage.take();
-                    for (int j = 0; j < poll.length; j++) {
+                for (int i = 0; i < defaultBatchSize; i++) {
+                    String[] node;
+                    
+                    synchronized (this) {
+                        if (!nodeStorage.isEmpty()) {
+                            node = nodeStorage.take();
+                        } else {
+                            break;
+                        }
+                    }
+                    for (int j = 0; j < node.length; j++) {
                         int index = j + 1;
-                        preparedStatement.setString(index, getStringOrNull(poll[j]));
+                        preparedStatement.setString(index, getStringOrNull(node[j]));
                     }
                     preparedStatement.addBatch();
-
                 }
                 int size = Arrays.stream(preparedStatement.executeBatch()).sum();
                 logger.debug("Executing batch size {}", size);
@@ -63,7 +69,10 @@ public class DbSaverImpl implements DbSaver {
             }
         } catch (SQLException | InterruptedException exception) {
             logger.error("Save error!", exception);
-            exception.printStackTrace();
+            if (exception instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new SavingException(exception);
         }
     }
 
@@ -78,13 +87,5 @@ public class DbSaverImpl implements DbSaver {
     @Override
     public void run() {
         save();
-    }
-
-    public boolean isStopped() {
-        return isStopped;
-    }
-
-    public void setStopped(boolean stopped) {
-        isStopped = stopped;
     }
 }
